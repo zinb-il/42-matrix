@@ -164,3 +164,113 @@ class Matrix(Generic[K]):
                 v.append(dot)
             mx.append(v)
         return Matrix(mx)
+
+    # Ex08
+    def trace(self) -> 'K':
+        """Calculate the trace of matrix
+        tr(A) = a11 + a22 + ⋯ + ann or trace(A) = ⅀nn=1  Ann
+
+        Undefined behaviour for non-square matrices -> we raise.
+        """
+        rows, cols = self.shape
+        if rows != cols:
+            raise ValueError("Trace is only defined for square matrices")
+
+        tr = 0
+        for i in range(rows):
+            tr += self.data[i][i]
+        return tr
+    
+    # Ex09
+    def transpose(self) -> 'Matrix[K]':
+        """Transpose a matrix
+        Return A^T: (A^T)[i][j] = A[j][i].
+        A: m x n  ->  A^T: n x m
+        """
+        m, n = self.shape
+        mx = [[self.data[i][j] for i in range(m)] for j in range(n)]
+        return Matrix(mx)
+
+   # Ex10
+    def row_echelon(self) -> 'Matrix[K]':
+        """Return the reduced row echelon form (RREF) of the matrix.
+
+        Gauss-Jordan elimination with partial pivoting.
+        The original matrix is not modified.
+        """
+        eps = 1e-20
+        rows, cols = self.shape
+        m = [row.copy() for row in self.data]
+        lead = 0
+
+        for col in range(cols):
+            if lead >= rows:
+                break
+
+            pivot = max(range(lead, rows), key=lambda r: abs(m[r][col]))
+            if abs(m[pivot][col]) < eps:
+                continue
+
+            m[lead], m[pivot] = m[pivot], m[lead]
+
+            p = m[lead][col]
+            m[lead] = [x / p for x in m[lead]]
+
+            for r in range(rows):
+                if r != lead:
+                    f = m[r][col]
+                    if f != 0:
+                        m[r] = [a - f * b for a, b in zip(m[r], m[lead])]
+            lead += 1
+
+        m = [[0.0 if abs(x) < eps else x for x in row] for row in m]
+        return Matrix(m)
+
+    # Ex11
+    def determinant(self) -> K:
+        """Determinant of a square matrix via Gaussian elimination
+         with partial pivoting. Complexity O(n^3) time, O(n^2) space."""
+        
+        rows, cols = self.shape
+        if rows != cols:
+            raise ValueError("Determinant is only defined for square matrices")
+        n = rows
+        eps = 1e-20
+        m = [row.copy() for row in self.data]
+        det = 1
+
+        for col in range(n):
+            pivot = max(range(col, n), key=lambda r: abs(m[r][col]))
+            if abs(m[pivot][col]) < eps:
+                return 0.0
+
+            if pivot != col:
+                m[col], m[pivot] = m[pivot], m[col]
+                det = -det
+
+            det *= m[col][col]
+
+            for r in range(col + 1, n):
+                if m[r][col] == 0:
+                    continue
+                f = m[r][col] / m[col][col]
+                for j in range(col, n):
+                    m[r][j] -= f * m[col][j]
+
+        return det
+
+    # Ex12
+    def inverse(self) -> 'Matrix[K]':
+        """Invers of a square matrix
+         A-1 = (1 / det(A)) *  A^T
+         A x A-1 = A-1 x A = I
+         I: identity matrix
+         """
+        rows, cols = self.shape
+        if rows != cols:
+            raise ValueError("Inverse is only defined for square matrices")
+        dt = self.determinant()
+        assert dt != 0.0, "When the det is nul the mtrice have no inverse"
+        transp = self.transpose()
+        inverse = transp.scl(1 / dt)
+        return inverse
