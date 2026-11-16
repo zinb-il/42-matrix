@@ -1,12 +1,22 @@
 
 from numbers import Number
 from typing import Generic, TypeVar
+from .complex import Complex
 
-K = TypeVar("K", bound=Number)
+K = TypeVar("K", "Complex", float, int)
 
+# ABS function
+def _abs(n : K):
+    if isinstance(n, (float, int)):
+        return n if n > 0.0 else -n
+    if isinstance(n, Complex):
+        return n._my_abs__()
+    #This condition only for test
+    if isinstance(n, complex):
+        return abs(n)
 
 def _is_number(value: object) -> bool:
-    return isinstance(value, Number) and not isinstance(value, bool)
+    return isinstance(value, (Number, Complex)) and not isinstance(value, bool)
 
 
 class Vector(Generic[K]):
@@ -26,6 +36,8 @@ class Vector(Generic[K]):
         return "\n".join(f"[{x}]" for x in self.data)
 
     def add(self, v: "Vector[K]") -> "Vector[K]":
+        if not isinstance(v, Vector):
+            return NotImplemented
         if self.shape != v.shape:
             raise ValueError("Vectors must have the same size")
 
@@ -35,6 +47,8 @@ class Vector(Generic[K]):
         return self
 
     def sub(self, v: "Vector[K]") -> "Vector[K]":
+        if not isinstance(v, Vector):
+            return NotImplemented
         if self.shape != v.shape:
             raise ValueError("Vectors must have the same size")
 
@@ -79,18 +93,21 @@ class Vector(Generic[K]):
         return dt
 
     # Ex04
+    # Norme 1   : la somme des valeurs absolutes
+    # Norme inf : max des valeurs
+    # Norme     : sqrt(somme de |x_ij|^2)  (Frobenius)
     def norm_1(self) -> float:
         sm = 0.0
         for i in self.data:
-            sm += abs(i)
+            sm += _abs(i)
         return float(sm)
 
     def norm(self) -> float:
         sm = 0.0
         for i in self.data:
-            a = abs(i)
-            sm += i * i
+            a = _abs(i)
+            sm += a ** 2
         return float(sm ** 0.5)
 
     def norm_inf(self) -> float:
-        return float(max(abs(i) for i in self.data))
+        return float(max(_abs(i) for i in self.data))

@@ -1,4 +1,5 @@
 from src.matrice import Matrix
+from src.complex import Complex
 
 def test_determinant():
     print("=== determinant tests ===")
@@ -58,17 +59,23 @@ def test_determinant():
     assert A.data == [[1.0, 2.0], [3.0, 4.0]], "self muté !"
     print("cas 11 : ok, self non muté")
 
-    A = Matrix([[1 + 5j, 2 + 1j], [3, 4]])
-    d = A.determinant()
-    print(f"cas 12 : det = {d} (type={type(d).__name__})")
-
     A = Matrix([[4.0, 3.0],
                 [1.0, 2.0]])
-    print(f"cas 13 (attendu 0) : {A.determinant()}")
+    print(f"cas 12 (attendu 5) : {A.determinant()}")
+
+def test_determinant_complex():
+    print("=== determinant tests Complex ===")
+    A = Matrix([[Complex(4, 0), Complex(3, 0)],
+                [Complex(1, 0), Complex(2, 0)]])
+    print(A.determinant())
+    A = Matrix([[complex(4, 0), complex(3, 0)],
+                [complex(1, 0), complex(2, 0)]])
+    print(A.determinant())
 
 def main():
     try:
         test_determinant()
+        test_determinant_complex()
 
     except Exception as err:
         print(f"Unexpected error: {type(err).__name__}: {err}")

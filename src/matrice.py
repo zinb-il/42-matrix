@@ -1,11 +1,11 @@
 
 from numbers import Number
 from typing import Generic, TypeVar
-from .vector import _is_number, Vector
+from .vector import _is_number, _abs, Vector
+from .complex import Complex
 
 
-K = TypeVar("K", bound=Number)
-
+K = TypeVar("K", "Complex", float, int)
 
 class Matrix(Generic[K]):
     """A rectangular matrix containing numeric elements."""
@@ -30,8 +30,14 @@ class Matrix(Generic[K]):
         self.data = [row.copy() for row in data]
         self.shape = (len(self.data), columns)
 
+    def __str__(self) -> str:
+        return "\n".join(
+            "[" + ", ".join(str(x) for x in row) + "]"
+            for row in self.data
+        )
+
     def __repr__(self) -> str:
-        return "\n".join(str(row) for row in self.data)
+        return f"Matrix({self.data!r})"
 
     def add(self, v: "Matrix[K]") -> "Matrix[K]":
         if self.shape != v.shape:
@@ -99,7 +105,7 @@ class Matrix(Generic[K]):
         for j in range(self.shape[1]):
             sm = 0.0
             for i in range(self.shape[0]):
-                sm += abs(self.data[i][j])
+                sm += _abs(self.data[i][j])
             if sm > mx:
                 mx = sm
         return float(mx)
@@ -108,7 +114,7 @@ class Matrix(Generic[K]):
         sm = 0.0
         for i in range(self.shape[0]):
             for j in range(self.shape[1]):
-                a = abs(self.data[i][j])
+                a = _abs(self.data[i][j])
                 sm += a * a
         return float(sm ** 0.5)
 
@@ -117,7 +123,7 @@ class Matrix(Generic[K]):
         for i in range(self.shape[0]):
             sm = 0.0
             for j in range(self.shape[1]):
-                sm += abs(self.data[i][j])
+                sm += _abs(self.data[i][j])
             if sm > mx:
                 mx = sm
         return float(mx)
@@ -170,7 +176,7 @@ class Matrix(Generic[K]):
         """Calculate the trace of matrix
         tr(A) = a11 + a22 + ⋯ + ann or trace(A) = ⅀nn=1  Ann
 
-        Undefined behaviour for non-square matrices -> we raise.
+        Undefined behaviour for non-square matrices.
         """
         rows, cols = self.shape
         if rows != cols:
@@ -191,14 +197,14 @@ class Matrix(Generic[K]):
         mx = [[self.data[i][j] for i in range(m)] for j in range(n)]
         return Matrix(mx)
 
-   # Ex10
+    # Ex10
     def row_echelon(self) -> 'Matrix[K]':
         """Return the reduced row echelon form (RREF) of the matrix.
 
         Gauss-Jordan elimination with partial pivoting.
         The original matrix is not modified.
         """
-        eps = 1e-20
+
         rows, cols = self.shape
         m = [row.copy() for row in self.data]
         lead = 0
@@ -207,8 +213,8 @@ class Matrix(Generic[K]):
             if lead >= rows:
                 break
 
-            pivot = max(range(lead, rows), key=lambda r: abs(m[r][col]))
-            if abs(m[pivot][col]) < eps:
+            pivot = max(range(lead, rows), key=lambda r: _abs(m[r][col]))
+            if m[pivot][col] == 0:
                 continue
 
             m[lead], m[pivot] = m[pivot], m[lead]
@@ -220,16 +226,17 @@ class Matrix(Generic[K]):
                 if r != lead:
                     f = m[r][col]
                     if f != 0:
-                        m[r] = [a - f * b for a, b in zip(m[r], m[lead])]
+                        m[r] = [a - (f * b) for a, b in zip(m[r], m[lead])]
             lead += 1
-
-        m = [[0.0 if abs(x) < eps else x for x in row] for row in m]
-        return Matrix(m)
+        return Matrix([
+            [x if _abs(x) > 0 else 0.0 for x in row]
+            for row in m
+        ])
 
     # Ex11
     def determinant(self) -> K:
         """Determinant of a square matrix via Gaussian elimination
-         with partial pivoting. Complexity O(n^3) time, O(n^2) space."""
+         with partial pivoting."""
         
         rows, cols = self.shape
         if rows != cols:
@@ -240,8 +247,8 @@ class Matrix(Generic[K]):
         det = 1
 
         for col in range(n):
-            pivot = max(range(col, n), key=lambda r: abs(m[r][col]))
-            if abs(m[pivot][col]) < eps:
+            pivot = max(range(col, n), key=lambda r: _abs(m[r][col]))
+            if _abs(m[pivot][col]) < eps:
                 return 0.0
 
             if pivot != col:
@@ -251,7 +258,7 @@ class Matrix(Generic[K]):
             det *= m[col][col]
 
             for r in range(col + 1, n):
-                if m[r][col] == 0:
+                if m[r][col] == 0 :
                     continue
                 f = m[r][col] / m[col][col]
                 for j in range(col, n):
@@ -261,16 +268,29 @@ class Matrix(Generic[K]):
 
     # Ex12
     def inverse(self) -> 'Matrix[K]':
-        """Invers of a square matrix
-         A-1 = (1 / det(A)) *  A^T
-         A x A-1 = A-1 x A = I
-         I: identity matrix
-         """
-        rows, cols = self.shape
-        if rows != cols:
+        """Inverse of a square matrix using Gauss-Jordan on [A | I].
+            A⁻¹ = (1 / det(A)) · adj(A)
+            adj(A) = transposée de la matrice des cofacteurs
+        """
+        n, m = self.shape
+
+        if n != m:
             raise ValueError("Inverse is only defined for square matrices")
-        dt = self.determinant()
-        assert dt != 0.0, "When the det is nul the mtrice have no inverse"
-        transp = self.transpose()
-        inverse = transp.scl(1 / dt)
-        return inverse
+        aug = Matrix([
+            list(self.data[i]) + [1.0 if i == j else 0.0 for j in range(n)]
+            for i in range(n)
+        ])
+        reduced = aug.row_echelon().data
+        for i in range(n):
+            for j in range(n):
+                expected = 1.0 if i == j else 0.0
+                if _abs(reduced[i][j] - expected) > 1e-9:
+                    raise ValueError("The matrix is singular: it has no inverse")
+        return Matrix([row[n:] for row in reduced])
+    
+    # Ex13
+    def rank(self) -> int:
+        """Calculate the rank of a matrix
+        """
+        rref = self.row_echelon()
+        return sum(1 for row in rref.data if any(x != 0.0 for x in row))

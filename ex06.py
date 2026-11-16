@@ -1,5 +1,6 @@
 from typing import TypeVar
 from src.vector import Vector
+from src.complex import Complex
 from src.functions import cross_product
 
 
@@ -46,11 +47,23 @@ def test_cross_product():
     v = Vector([4.0, 5.0, 6.0])
     w = cross_product(u, v)
     print(f"cas 8 : u·w = {u.dot(w)}, v·w = {v.dot(w)}")  # 0.0, 0.0
-        
+
+def test_complex_vs_python():
+    print("=== cross_product tests (Complex) ===")
+
+    u  = Vector([Complex(1.0, 1.0), Complex(2.0, 2.0), Complex(2.0, 3.0)])
+    v  = Vector([Complex(5.0, 2.0), Complex(1.0, -1.0), Complex(2.0, 3.0)])
+    up = Vector([1+1j, 2+2j, 2+3j])
+    vp = Vector([5+02j, 1-1j, 2+3j])
+    print(cross_product(u, v))
+    print(f"{'-'* 5 }")
+    print(cross_product(up, vp))
+       
 
 def main():
     try:
         test_cross_product()
+        test_complex_vs_python()
 
     except Exception as err:
         print(f"Unexpected error: {type(err).__name__}: {err}")

@@ -1,4 +1,5 @@
 from src.matrice import Matrix
+from src.complex import Complex
 
 def test_trace():
     print("=== trace tests ===")
@@ -69,9 +70,26 @@ def test_trace():
     ])
     print(u.trace())
 
+def test_trace_complex():
+    print("=== trace tests Complex ===")
+    A = Matrix([
+        [Complex(1.0, 1.0), Complex(1.0, 1.0), Complex(1.0, 1.0)],
+        [Complex(1.0, 1.0), Complex(1.0, 1.0), Complex(1.0, 1.0)],
+        [Complex(1.0, 0.0), Complex(1.0, 0.0), Complex(1.0, 0.0)]
+        ])
+    print(A.trace())
+    print('-----------')
+    A = Matrix([
+        [complex(1.0, 1.0), complex(1.0, 1.0), complex(1.0, 1.0)],
+        [complex(1.0, 1.0), complex(1.0, 1.0), complex(1.0, 1.0)],
+        [complex(1.0, 0.0), complex(1.0, 0.0), complex(1.0, 0.0)]
+        ])
+    print(A.trace())
+
 def main():
     try:
         test_trace()
+        test_trace_complex()
 
     except Exception as err:
         print(f"Unexpected error: {type(err).__name__}: {err}")

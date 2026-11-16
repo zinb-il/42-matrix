@@ -1,4 +1,5 @@
 from src.matrice import Matrix
+from src.complex import Complex
 
 def test_transpose():
     print("=== transpose tests ===")

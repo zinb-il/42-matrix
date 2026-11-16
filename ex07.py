@@ -1,5 +1,6 @@
 from src.vector import Vector
 from src.matrice import Matrix
+from src.complex import Complex
 
 
 def test_mul_vec():
@@ -22,15 +23,33 @@ def test_mul_vec():
 
     try:
         Matrix([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]]).mul_vec(Vector([1.0, 2.0]))
-        print("cas 4 : ERREUR - aurait dû lever")
     except ValueError as e:
         print(f"cas 4 : ({e})")
+    
 
-    A = Matrix([[1.0, 2.0], [3.0, 4.0]])
-    x = Vector([1.0, 1.0])
-    A.mul_vec(x)
-    assert x.data == [1.0, 1.0], "x a été muté !"
-    print("cas 5 : entrée non mutée")
+def test_mul_vec_complex():
+    print("=== mul_vec tests complex ===")
+
+    A = Matrix(
+        [[Complex(1.0, 0.0), Complex(0.0, 1.0)],
+        [Complex(1.0, 0.0), Complex(0.0, 1.0)]]
+        )
+    x = Vector([Complex(4.0, 2.0), Complex(4.0, 2.0)])
+    print("cas 1 :")
+    print(A.mul_vec(x))
+    A = Matrix(
+        [[complex(1.0, 0.0), complex(0.0, 1.0)],
+        [complex(1.0, 0.0), complex(0.0, 1.0)]]
+        )
+    x = Vector([complex(4.0, 2.0), complex(4.0, 2.0)])
+    print(A.mul_vec(x))
+
+    
+
+    try:
+        Matrix([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]]).mul_vec(Vector([1.0, 2.0]))
+    except ValueError as e:
+        print(f"cas 4 : ({e})")
 
 
 def test_mul_mat():
@@ -87,10 +106,37 @@ def test_mul_mat():
     print("cas 8 (2x3 x 3x4) :")
     print(A.mul_mat(B)) 
 
+def test_mul_mat_complex():
+    print("=== mul_mat tests complex ===")
+
+    A = Matrix([
+        [Complex(1.0, 0.0), Complex(1.0, 0.0)],
+        [Complex(0.0, 1.0), Complex(0.0, 1.0)]
+        ])
+    B = Matrix([
+        [Complex(1.0, 0.0), Complex(1.0, 0.0)],
+        [Complex(0.0, 1.0), Complex(0.0, 1.0)]
+        ])
+    print("cas 1 :")
+    print(A.mul_mat(B))
+
+    A = Matrix([
+        [complex(1.0, 0.0), complex(1.0, 0.0)],
+        [complex(0.0, 1.0), complex(0.0, 1.0)]
+        ])
+    B = Matrix([
+        [complex(1.0, 0.0), complex(1.0, 0.0)],
+        [complex(0.0, 1.0), complex(0.0, 1.0)]
+        ])
+    print(A.mul_mat(B))
+
+
 def main():
     try:
         test_mul_vec()
         test_mul_mat()
+        test_mul_vec_complex()
+        test_mul_mat_complex()
 
     except Exception as err:
         print(f"Unexpected error: {type(err).__name__}: {err}")

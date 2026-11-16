@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="fr"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Matrix en images : géométrie et IA</title>
+<style>
+:root{--bg:#fafaf7;--card:#fff;--ink:#1d1d1f;--mut:#6b6b70;--a:#2563eb;--b:#ea580c;--c:#16a34a;--line:#e3e3df;--ai:#f1ecfd;--aiink:#5b21b6;color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#141416;--card:#1e1e22;--ink:#f2f2f3;--mut:#a0a0a8;--a:#60a5fa;--b:#fb923c;--c:#4ade80;--line:#33333a;--ai:#2a2340;--aiink:#c4b5fd;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#141416;--card:#1e1e22;--ink:#f2f2f3;--mut:#a0a0a8;--a:#60a5fa;--b:#fb923c;--c:#4ade80;--line:#33333a;--ai:#2a2340;--aiink:#c4b5fd;color-scheme:dark}
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*,*::before,*::after{box-sizing:inherit}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;padding:20px 16px 40px}
+header,main,section{max-width:1100px;margin:0 auto}
+h1{font-size:1.9rem;margin:0 0 6px}header p{color:var(--mut);margin:0 0 22px;max-width:60ch}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:8px}
+.n{font-size:.75rem;font-weight:700;letter-spacing:.06em;color:var(--a);text-transform:uppercase}
+h2{font-size:1.1rem;margin:0}.card p{margin:0;font-size:.92rem;color:var(--mut)}
+svg{width:100%;height:auto;background:var(--bg);border-radius:10px}
+svg text{font-size:11px;font-family:system-ui,sans-serif}
+.ar{stroke-width:2.5;fill:none;stroke-linecap:round}.ln{stroke-width:1.5;fill:none}
+.th{stroke-width:8;opacity:.3;stroke-linecap:round}.pg{fill-opacity:.15;stroke-width:1.5}
+.sa{stroke:var(--a)}.sb{stroke:var(--b)}.sc{stroke:var(--c)}.sm{stroke:var(--mut)}.si{stroke:var(--ink)}
+.fa{fill:var(--a)}.fb{fill:var(--b)}.fc{fill:var(--c)}.fm{fill:var(--mut)}.fi{fill:var(--ink)}
+.pa{fill:var(--a);stroke:var(--a)}.pb{fill:var(--b);stroke:var(--b)}.pc{fill:var(--c);stroke:var(--c)}.pm{fill:var(--mut);stroke:var(--mut)}
+.f{font-family:ui-monospace,Menlo,monospace;font-size:.82rem;background:var(--bg);padding:6px 10px;border-radius:8px}
+.ai{background:var(--ai);color:var(--aiink);border-radius:10px;padding:8px 10px;font-size:.88rem}
+input[type=range]{width:100%}
+.flow{margin-top:28px}.flow ol{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px;padding:0;margin:12px 0 0;list-style:none;counter-reset:s}
+.flow li{counter-increment:s;background:var(--ai);color:var(--aiink);border-radius:12px;padding:12px;font-size:.9rem}
+.flow li::before{content:counter(s);display:block;font-weight:700;font-size:1.3rem}
+</style></head><body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs><marker id="h" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto" markerUnits="userSpaceOnUse"><path d="M0,0L8,4L0,8z" fill="context-stroke"/></marker></defs></svg>
+<header><h1>Matrix en images</h1><p>La géométrie derrière chaque exercice (00 à 13) et son rôle en IA. Idée centrale : un vecteur est une flèche, une matrice est une déformation de l’espace.</p></header>
+<main class="grid" id="g"></main>
+<section class="flow"><h2>Le fil conducteur en IA</h2><ol>
+<li>Un texte ou une image devient un vecteur (ex 00, 01)</li>
+<li>Chaque couche multiplie par une matrice : W·x (ex 07)</li>
+<li>On compare le sens de deux vecteurs : produit scalaire, cosinus (ex 03, 05)</li>
+<li>On mesure l’erreur avec une norme (ex 04)</li>
+<li>On corrige en renvoyant l’erreur avec Wᵀ, par petits pas η·∇ (ex 09, 00)</li></ol></section>
+<script>
+let S=26,OX=24,OY=140;
+const X=x=>OX+x*S,Y=y=>OY-y*S;
+const so=(x,y,s=26)=>{OX=x;OY=y;S=s;return''};
+const ar=(a,b,c,d,k='a',ds)=>`<line x1="${X(a)}" y1="${Y(b)}" x2="${X(c)}" y2="${Y(d)}" class="ar s${k}"${ds?' stroke-dasharray="5 4"':''} marker-end="url(#h)"/>`;
+const ln=(a,b,c,d,k='m',ds)=>`<line x1="${X(a)}" y1="${Y(b)}" x2="${X(c)}" y2="${Y(d)}" class="ln s${k}"${ds?' stroke-dasharray="4 3"':''}/>`;
+const th=(a,b,c,d,k)=>`<line x1="${X(a)}" y1="${Y(b)}" x2="${X(c)}" y2="${Y(d)}" class="th s${k}"/>`;
+const pg=(p,k='a',ds)=>`<polygon points="${p.map(q=>X(q[0])+','+Y(q[1])).join(' ')}" class="pg p${k}"${ds?' stroke-dasharray="4 3"':''}/>`;
+const tx=(x,y,s,k='i',a)=>`<text x="${x}" y="${y}" class="f${k}"${a?` text-anchor="${a}"`:''}>${s}</text>`;
+const dot=(x,y,k='a',r=4)=>`<circle cx="${X(x)}" cy="${Y(y)}" r="${r}" class="f${k}"/>`;
+const axes=()=>ln(0,0,8,0)+ln(0,0,0,5);
+const rl=(a,b,c,d,k)=>`<line x1="${a}" y1="${b}" x2="${c}" y2="${d}" class="ar s${k}" marker-end="url(#h)"/>`;
+const ra=(cx,cy,deg,l,k)=>rl(cx,cy,cx+l*Math.cos(deg*Math.PI/180),cy-l*Math.sin(deg*Math.PI/180),k);
+const sv=h=>`<svg viewBox="0 0 240 160" role="img">${h}</svg>`;
+const sq=[[0,0],[1,0],[1,1],[0,1]];
+const cell=(x,y,w,t,k)=>`<rect x="${x}" y="${y}" width="${w}" height="${w}" rx="4" class="pg p${k}"/>`+tx(x+w/2,y+w/2+4,t,'i','middle');
+
+const cards=[
+['00','Addition, soustraction, échelle',
+'Additionner : mettre deux flèches bout à bout. Soustraire : ajouter la flèche opposée. Mettre à l’échelle : étirer ou raccourcir la flèche sans changer sa direction.',
+()=>sv(so(24,140)+axes()+pg([[0,0],[2,1],[3,3.2],[1,2.2]],'c',1)+ar(0,0,2,1,'a')+ar(0,0,1,2.2,'b')+ar(0,0,3,3.2,'c')+ar(2,1,4,2,'a',1)+tx(X(2)+6,Y(1)+14,'u','a')+tx(X(1)-14,Y(2.2),'v','b')+tx(X(3)+6,Y(3.2),'u+v','c')+tx(X(4)+4,Y(2)+4,'2u','a')),
+'u + v · u − v · λu',
+'Les embeddings sont des vecteurs : « roi − homme + femme ≈ reine ». Et entraîner un modèle, c’est w ← w − η·∇ : soustraire un gradient mis à l’échelle.'],
+['01','Combinaison linéaire',
+'« Faire 2 pas dans la direction a, puis 1,5 pas dans la direction b ». Avec les bons coefficients, on atteint n’importe quel point du plan.',
+()=>sv(so(24,140)+axes()+ar(0,0,3,1,'a',1)+ar(3,1,3.45,2.8,'b')+ar(0,0,1.5,.5,'a')+ar(0,0,.3,1.2,'b')+ar(0,0,3.45,2.8,'c')+tx(X(.75),Y(.25)+16,'a','a')+tx(X(.15)-14,Y(.7),'b','b')+tx(X(1.8),Y(.6)+16,'2a','a')+tx(X(3.45)+6,Y(1.9),'1,5b','b')+tx(34,36,'v = 2a + 1,5b','c')),
+'v = λ₁a + λ₂b',
+'Un neurone calcule w₁x₁ + w₂x₂ + … : une combinaison linéaire. L’attention d’un Transformer mélange des vecteurs avec des poids.'],
+['02','Interpolation linéaire',
+'Le curseur t fait glisser un point de u vers v : t = 0 donne u, t = 1 donne v, t = 0,5 le milieu. Hors de [0 ; 1], on reste sur la droite (pointillés).',
+()=>{so(24,140);return sv(axes()+ln(0,.5,8,4.5,'m',1)+ar(1,1,6,3.5,'a')+dot(1,1,'b')+dot(6,3.5,'b')+tx(X(1),Y(1)+16,'u','i','middle')+tx(X(6),Y(3.5)-10,'v','i','middle')+`<circle id="lp" cx="${X(2.5)}" cy="${Y(1.75)}" r="6" class="fc"/>`)+'<input id="sl" type="range" min="-0" max="1" step="0.05" value="0.3" aria-label="t"><span id="tv" class="fm">t = 0,30</span>'},
+'lerp(u, v, t) = (1 − t)·u + t·v',
+'Mélanger deux images ou deux voix en interpolant leurs vecteurs latents. La moyenne mobile exponentielle des poids (EMA) est aussi un lerp.'],
+['03','Produit scalaire',
+'Produit scalaire = longueur de u × longueur de l’ombre de v sur u. Grand et positif : même direction. Zéro : perpendiculaires. Négatif : sens opposés.',
+()=>sv(so(24,140)+axes()+th(0,0,3.46,.69,'c')+ar(0,0,5,1,'a')+ar(0,0,3,3,'b')+ln(3,3,3.46,.69,'m',1)+tx(X(5)-4,Y(1)-8,'u','a')+tx(X(3)-14,Y(3)-2,'v','b')+tx(X(1.7),Y(.69)+22,'ombre de v sur u','c')),
+'u·v = ‖u‖‖v‖ cos θ = Σ uᵢvᵢ',
+'Un neurone est un produit scalaire. L’attention calcule q·k pour mesurer à quel point deux mots se répondent.'],
+['04','Normes',
+'Une norme mesure une longueur, mais on peut « marcher » de trois façons : en taxi sur une grille (L1, losange), en ligne droite (L2, cercle), ou par le plus grand écart (L∞, carré). Chaque forme réunit les points à distance 1 de l’origine.',
+()=>sv(`<polygon points="150,33 202,85 150,137 98,85" class="pg pa"/><circle cx="150" cy="85" r="52" class="pg pb"/><rect x="98" y="33" width="104" height="104" class="pg pc"/><circle cx="150" cy="85" r="3" class="fi"/>`+tx(4,14,'◆ L1 : losange','a')+tx(4,30,'● L2 : cercle','b')+tx(4,46,'■ L∞ : carré','c')),
+'‖v‖₁ = Σ|vᵢ| · ‖v‖₂ = √Σvᵢ² · ‖v‖∞ = max|vᵢ|',
+'Régularisation L1 (met des poids à zéro) et L2 (garde les poids petits), « gradient clipping », LayerNorm : tout repose sur des normes.'],
+['05','Cosinus',
+'Le cosinus ne regarde que l’angle, pas la longueur : 1 = même sens, 0 = perpendiculaires, −1 = sens opposés.',
+()=>sv(ra(40,80,25,34,'a')+ra(40,80,35,34,'b')+ra(120,80,0,34,'a')+ra(120,80,90,34,'b')+ra(200,80,0,32,'a')+ra(200,80,180,32,'b')+tx(40,124,'cos ≈ 1','a','middle')+tx(120,124,'cos = 0','b','middle')+tx(200,124,'cos = −1','c','middle')+tx(40,142,'même sens','m','middle')+tx(120,142,'perpendiculaires','m','middle')+tx(200,142,'opposés','m','middle')),
+'cos θ = u·v / (‖u‖ ‖v‖)',
+'La recherche sémantique et le RAG comparent le sens de deux textes par la similarité cosinus de leurs embeddings.'],
+['06','Produit vectoriel (3D)',
+'Le produit vectoriel de u et v est une flèche perpendiculaire au plan qu’ils forment ; sa longueur est l’aire du parallélogramme. Il n’existe qu’en 3D.',
+()=>sv(`<polygon points="60,120 150,120 195,90 105,90" class="pg pa"/>`+rl(60,120,60,30,'c')+rl(60,120,150,120,'a')+rl(60,120,105,90,'b')+`<path d="M60,110 L70,110 L70,120" class="ln sm"/>`+tx(150,138,'u','a')+tx(100,84,'v','b')+tx(68,38,'w = u × v','c')+tx(128,108,'aire','m','middle')),
+'‖u × v‖ = aire du parallélogramme',
+'Surtout utile en 3D : normales de surfaces, caméras, robotique, nuages de points pour la vision par ordinateur.'],
+['07','Multiplication matrice × vecteur / matrice',
+'Une matrice déforme tout l’espace : ses colonnes donnent l’arrivée des vecteurs de base e₁ et e₂ (le carré devient un parallélogramme). Multiplier deux matrices, c’est enchaîner deux déformations.',
+()=>sv(so(14,115,34)+pg(sq,'m')+ar(0,0,1,0,'a')+ar(0,0,0,1,'b')+tx(X(1)-4,Y(0)+14,'e₁','a')+tx(X(0)-12,Y(1)+4,'e₂','b')+so(124,115,34)+pg([[0,0],[2,.5],[3,2],[1,1.5]],'a')+ar(0,0,2,.5,'a')+ar(0,0,1,1.5,'b')+tx(X(2)+4,Y(.5)+14,'Ae₁','a')+tx(X(1)-26,Y(1.5)-2,'Ae₂','b')+rl(58,98,116,98,'m')+tx(87,90,'A','i','middle')+tx(14,146,'aire 1','m')+tx(124,146,'aire 2,5','m')),
+'Au = v · (AB)u = A(Bu)',
+'Une couche de réseau de neurones, c’est y = W·x (plus une non-linéarité). Un réseau entier enchaîne ces multiplications, ce que les GPU font très bien.'],
+['08','Trace',
+'La trace est la somme de la diagonale. Pour une matrice diagonale, c’est la somme des étirements le long de chaque axe (ici ×2 et ×3). Elle ne change pas si on tourne le repère.',
+()=>{const M=[[2,-5,0],[4,3,7],[-2,3,4]];let g='';M.forEach((r,i)=>r.forEach((v,j)=>g+=cell(10+34*j,14+34*i,32,v,i==j?'a':'m')));return sv(g+tx(60,130,'2 + 3 + 4 = 9','a','middle')+so(150,112,22)+pg(sq,'m',1)+pg([[0,0],[2,0],[2,3],[0,3]],'a')+tx(X(1),Y(0)+14,'×2','a','middle')+tx(X(0)-4,Y(1.5),'×3','b','end')+tx(172,146,'trace = 2 + 3 = 5','m','middle'))},
+'Tr(A) = Σ Aᵢᵢ',
+'La trace d’une matrice de covariance est la variance totale des données (utile pour la PCA).'],
+['09','Transposée',
+'Transposer, c’est retourner la matrice comme dans un miroir le long de la diagonale : les lignes deviennent des colonnes. Une matrice 2×3 devient 3×2.',
+()=>{const A=[[1,2,3],[4,5,6]];let l='',r='';A.forEach((row,i)=>row.forEach((v,j)=>{l+=cell(10+27*j,36+27*i,25,v,i?'b':'a');r+=cell(150+27*i,18+27*j,25,v,i?'b':'a')}));return sv(l+r+`<line x1="10" y1="36" x2="64" y2="90" class="ln sm" stroke-dasharray="4 3"/>`+rl(98,62,140,62,'m')+tx(119,54,'miroir','m','middle')+tx(46,112,'A (2×3)','m','middle')+tx(177,122,'Aᵀ (3×2)','m','middle'))},
+'(Aᵀ)ᵢⱼ = Aⱼᵢ',
+'La rétropropagation renvoie l’erreur vers l’arrière avec Wᵀ, et l’attention calcule Q·Kᵀ.'],
+['10','Forme échelonnée',
+'Chaque équation est une droite ; la solution est leur intersection. Échelonner, c’est combiner les lignes pour simplifier le système sans déplacer ce point : à la fin, on lit x et y directement.',
+()=>sv(so(24,140)+axes()+ln(0,8/3,4,0,'a')+ln(0,.5,2.4,4.7,'b')+ln(.897,0,.897,2.069,'c',1)+ln(0,2.069,.897,2.069,'c',1)+dot(.897,2.069,'c',5)+tx(X(3.3),Y(.9),'2x+3y=8','a')+tx(X(2.55),Y(4.6),'−7x+4y=2','b')+tx(110,16,'x ≈ 0,9 et y ≈ 2,07','c')),
+'2x+3y=8, −7x+4y=2 → (26/29 ; 60/29)',
+'Résoudre des systèmes linéaires est le cœur de la régression linéaire (moindres carrés) et de beaucoup de calculs numériques.'],
+['11','Déterminant',
+'Le déterminant est le facteur par lequel les aires (ou volumes) sont multipliées. Si det = 0, tout s’écrase sur une droite : de l’information est perdue pour toujours.',
+()=>sv(so(8,100)+pg(sq,'m')+so(52,100)+pg([[0,0],[2,.5],[3,2],[1,1.5]],'a')+so(140,100)+th(0,0,3,1.5,'b')+dot(0,0,'b',3)+dot(3,1.5,'b',3)+tx(8,138,'det = 1','m')+tx(52,138,'det = 2,5','a')+tx(140,138,'det = 0 : écrasé','b')),
+'det A = aire du parallélogramme (signée)',
+'Les « normalizing flows » utilisent le déterminant pour suivre l’étirement des probabilités. det = 0 signale des données redondantes (colinéaires).'],
+['12','Inverse',
+'L’inverse défait la transformation : A envoie le carré sur le parallélogramme, A⁻¹ le ramène. Elle n’existe que si det ≠ 0, c’est-à-dire si rien n’a été écrasé.',
+()=>sv(so(14,112,34)+pg(sq,'m')+so(124,112,34)+pg([[0,0],[2,.5],[3,2],[1,1.5]],'a')+rl(60,60,118,60,'a')+tx(89,52,'A','a','middle')+rl(118,90,60,90,'c')+tx(89,108,'A⁻¹','c','middle')+tx(14,138,'départ','m')+tx(124,138,'après A','m')+tx(120,154,'retour possible seulement si det ≠ 0','c','middle')),
+'A⁻¹A = I',
+'La régression linéaire a pour solution w = (XᵀX)⁻¹Xᵀy. Quand l’inverse n’existe pas, on utilise la pseudo-inverse.'],
+['13','Rang',
+'Le rang est le nombre de dimensions réellement atteintes par la transformation : une droite (1), un plan (2), tout l’espace (3). Rang + nullité = nombre de colonnes (ce qui est conservé + ce qui est écrasé).',
+()=>sv(tx(120,18,'dimension de l’image de la transformation','m','middle')+`<line x1="15" y1="95" x2="65" y2="45" class="ar sa"/><polygon points="92,95 140,95 150,50 102,50" class="pg pb"/><polygon points="186,86 218,86 218,54 186,54" class="pg pc"/><polygon points="172,100 204,100 204,68 172,68" class="pg pc"/><path d="M172,100L186,86M204,100L218,86M204,68L218,54M172,68L186,54" class="ln sc"/>`+tx(40,125,'rang 1','a','middle')+tx(121,125,'rang 2','b','middle')+tx(195,125,'rang 3','c','middle')+tx(40,142,'droite','m','middle')+tx(121,142,'plan','m','middle')+tx(195,142,'espace','m','middle')),
+'rang(A) + nullité(A) = nombre de colonnes',
+'LoRA adapte un gros modèle avec des matrices de rang faible ; la PCA et la compression gardent les quelques directions qui comptent.']
+];
+document.getElementById('g').innerHTML=cards.map(c=>`<article class="card"><div class="n">Exercice ${c[0]}</div><h2>${c[1]}</h2><p>${c[2]}</p>${c[3]()}<div class="f">${c[4]}</div><div class="ai">🤖 <b>En IA :</b> ${c[5]}</div></article>`).join('');
+const sl=document.getElementById('sl');
+if(sl)sl.oninput=()=>{so(24,140);const t=+sl.value,p=document.getElementById('lp');p.setAttribute('cx',X(1+5*t));p.setAttribute('cy',Y(1+2.5*t));document.getElementById('tv').textContent='t = '+t.toFixed(2).replace('.',',')};
+</script></body></html>
